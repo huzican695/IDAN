@@ -710,108 +710,6 @@ def test(device, test_dataloader):
     runtime = end_time - begin_time
     print('running time:', runtime)
 
-
-def iou(path_pre, path_lab):
-    begin_time = time.time()
-
-    img_name = os.listdir(path_pre)
-    img_name = list(filter(file_filter, img_name))
-
-    iou_list = []
-    p_list = []
-    r_list = []
-    F1_list = []
-    acc_list = []
-
-    for i in range(len(img_name)):
-        det = img_name[i]
-        det = cv2.imread(path_pre + det, 0)
-
-        lab = img_name[i]
-        lab = cv2.imread(path_lab + lab, 0)
-        lab = cv2.resize(lab, (opt.image_scale_w, opt.image_scale_h))
-
-        count0, count1, count2, count3 = 0, 0, 0, 0
-        for j in range(det.shape[0]):
-            for k in range(det.shape[1]):
-                # TP
-                if det[j][k] != 0 and lab[j][k] != 0:
-                    count0 += 1
-                # FN
-                elif det[j][k] == 0 and lab[j][k] != 0:
-                    count1 += 1
-                # FP
-                elif det[j][k] != 0 and lab[j][k] == 0:
-                    count2 += 1
-                # TN
-                elif det[j][k] == 0 and lab[j][k] == 0:
-                    count3 += 1
-        iou = count0 / (count1 + count0 + count2 + 0.0001)
-        p = count0 / (count0 + count2 + 0.0001)
-        r = count0 / (count0 + count1 + 0.0001)
-        acc = (count0 + count3)/ (count1 + count0 + count2 + count3 + 0.0001)
-        F1 = 2 * (p * r) / (p + r + 0.0001)
-
-        iou_list.append(iou)
-        p_list.append(p)
-        r_list.append(r)
-        F1_list.append(F1)
-        acc_list.append(acc)
-
-    print('Done!')
-    end_time = time.time()
-    runtime = end_time - begin_time
-    print('running time:', runtime)
-    return np.mean(iou_list),np.mean(p_list),np.mean(r_list),np.mean(F1_list),np.mean(acc_list)
-
-
-def iou_2(path_pre, path_lab):
-    begin_time = time.time()
-
-    img_name = os.listdir(path_pre)
-    img_name = list(filter(file_filter, img_name))
-
-    iou_list_1 = []
-    p_list_1 = []
-    r_list_1 = []
-    F1_list_1 = []
-    acc_list_1 = []
-    for i in range(len(img_name)):
-        det = img_name[i]
-        det = cv2.imread(path_pre + '/' + det, 0)
-        det_1 = np.where(det != 0, 1, 0)
-        lab = img_name[i]
-        lab = cv2.imread(path_lab + '/' + lab, 0)
-        lab = cv2.resize(lab, (opt.image_scale_w, opt.image_scale_h))
-        lab_1 = np.where(lab != 0, 1, 0)
-        # TP
-        count_0 = (det_1 * lab_1).sum()
-        # FN
-        count_1 = ((1 - det_1) * lab_1).sum()
-        # FP
-        count_2 = (det_1 * (1 - lab_1)).sum()
-        # TN
-        count_3 = ((1 - det_1) * (1 - lab_1)).sum()
-
-        iou_1 = count_0 / (count_1 + count_0 + count_2 + 0.0001)
-        p_1 = count_0 / (count_0 + count_2 + 0.0001)
-        r_1 = count_0 / (count_0 + count_1 + 0.0001)
-        acc_1 = (count_0 + count_3) / (count_1 + count_0 + count_2 + count_3 + 0.0001)
-        F1_1 = 2 * (p_1 * r_1) / (p_1 + r_1 + 0.0001)
-
-        iou_list_1.append(iou_1)
-        p_list_1.append(p_1)
-        r_list_1.append(r_1)
-        F1_list_1.append(F1_1)
-        acc_list_1.append(acc_1)
-
-    print('Done!')
-    end_time = time.time()
-    runtime = end_time - begin_time
-    print('running time_1:', runtime)
-
-    return np.mean(iou_list_1), np.mean(p_list_1), np.mean(r_list_1), np.mean(F1_list_1), np.mean(acc_list_1)
-
 def iou_1(path_pre, path_lab):
     begin_time = time.time()
 
@@ -878,12 +776,10 @@ if __name__ == '__main__':
                 torch.save(unet, opt.model_dir)
                 print('testing...')
                 test(device, test_dataloader)
-                #Miou, pre, recall, F1, acc= iou(opt.result, opt.label_path_test)
+              
                 Miou, pre, recall, F1, acc = iou_1(opt.result, opt.label_path_test)
                 print('mean_iou:', Miou, 'mean_pre:', pre, 'mean_recall:', recall, 'mean_F1:', F1, 'acc:', acc)
 
-
-                # print('mean_iou_1:', Miou_1, 'mean_pre_1:', pre_1, 'mean_recall_1:', recall_1, 'mean_F1_1:', F1_1, 'acc_1:', acc_1)
 
                 if F1 > f1_max or Miou > Miou_max:
                     f1_max = F1
@@ -895,9 +791,6 @@ if __name__ == '__main__':
                     f.write("model_num" + " " + str(epoch) + '  mean_iou:' + str(Miou) + '  mean_pre:' + str(
                         pre) + '  mean_recall:' + str(recall) + '  mean_F1:' + str(F1) + '  acc:' + str(acc) +'\n')
 
-                    # f.write("model_num" + " " + str(epoch) + '  mean_iou_1:' + str(Miou_1) + '  mean_pre_1:' + str(
-                    #     pre_1) + '  mean_recall_1:' + str(recall_1) + '  mean_F1_1:' + str(F1_1) + '  acc_1:' + str(acc_1) + '\n')
-
     if opt.mode == 'test':
         test(device, test_dataloader)
         Miou, pre, recall, F1, acc = iou_1(opt.result, opt.label_path_test)
@@ -905,66 +798,6 @@ if __name__ == '__main__':
 
 
 
-
-
-# #特征可视化
-# def difference_operation(map1,map2):
-#     map1 = np.array(map1[0].detach().cpu())
-#     map2 = np.array(map2[0].detach().cpu())
-#     map = cv2.absdiff(map1,map2)
-#     # 图像闭运算 = 先膨胀，再腐蚀，将断线联通
-#     kernel = np.ones((3, 3), dtype=np.uint8)
-#     map = cv2.morphologyEx(map, cv2.MORPH_CLOSE, kernel)  ## 有缺陷，填补缺陷
-#     #map = np.hstack((map, closing))
-#     return map
-#
-# def heatmap(fea,name):
-#
-#     fea = fea#4,256,32,32
-#     #fea2 = utils.make_grid(fea, nrow=IMG_CUT, padding=0)
-#     #g = torch.nn.functional.adaptive_avg_pool2d(fea, (1, 1))
-#     fea1 = np.array(fea)#32,128,256
-#     #g = np.array(g[0])
-#     #fea1 = fea1*g
-#     heatmap1 = np.maximum(fea1, 0)
-#     #heatmap1 = np.max(fea1, axis=0)
-#     # heatmap与0比较，取其大者
-#     heatmap = np.mean(heatmap1, axis=0) # shape为[256,256]，二维
-#     #.reshape(256, 256)
-#     #heatmap = np.where(heatmap > 0.9, 1, heatmap)
-#     heatmap = (((heatmap - np.min(heatmap)) / (np.max(heatmap) - np.min(heatmap)))*255).astype(np.uint8) # 归一化并映射到0-255的整数，方便伪彩色化
-#     #heatmap = (( heatmap)* 255).astype(np.uint8)
-#     # heatmap = utils.make_grid(heatmap, nrow=IMG_CUT, padding=0)
-#
-#     heatmap = cv2.resize(heatmap,(256,256))
-#     #heatmap = (heatmap*255).astype(np.uint8)
-#     #img = cv2.imread(img_path)
-#
-#     # heatmap = cv2.resize(heatmap, (road_np.shape[1], road_np.shape[0]))
-#     #heatmap = np.uint(255 * heatmap)
-#     heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-#
-#     #super_map = heatmap * 0.4 + road_np
-#     cv2.imwrite("F:/cord1/eyes_sum//{}.png".format(name), heatmap)
-#
-# if __name__ == '__main__':
-#     for i in os.listdir("F:/5_1/5_1/train/after/"):
-#         imgA = cv2.imread("F:/5_1/5_1/train/after/{}".format(i))
-#         imgA = torch.tensor(imgA/255)
-#         imgB = cv2.imread("F:/5_1/5_1/train/before/{}".format(i))
-#         imgB = torch.tensor(imgB / 255)
-#         imgA = imgA.permute(2, 0, 1).unsqueeze(0).type(torch.FloatTensor)
-#         imgB = imgB.permute(2, 0, 1).unsqueeze(0).type(torch.FloatTensor)
-#         imgA, imgB = imgA.to(device), imgB.to(device)
-#         A_fea = Pre_model(imgA)
-#         B_fea = Pre_model(imgB)
-#         for j in range(5):
-#             out = difference_operation(A_fea[j],B_fea[j])
-#             heatmap(A_fea[j][0].detach().cpu(),str(i[:-4])+"_after_"+str(j))
-#             heatmap(B_fea[j][0].detach().cpu(),str(i[:-4])+"_before_"+str(j))
-#             heatmap(out, str(i[:-4])+"_diff_"+str(j))
-#         lab = cv2.imread("F:/5_1/5_1/train/change_label/{}".format(i))
-#         cv2.imwrite("F:/cord1/eyes_sum/{}.png".format(i), lab)
 
 
 
